@@ -96,7 +96,7 @@ void setup() {
   //clear timer1 interrupt flags
   TIFR1 = 0x00;
   //counter seed for 1 second triggering
-  OCR1A = 15624;
+  OCR1A = 15632;
   //enable output compare interrupt
   TIMSK1 = (1 << OCIE1A);
   sei();
