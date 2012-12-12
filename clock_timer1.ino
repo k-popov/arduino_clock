@@ -107,7 +107,7 @@ void setup() {
 
   byte prev_time_value = 0;
   slcd.setCursor(0, 0);
-  slcd.print("VV"); //hours setting indicator
+  slcd.print("Setting hours:"); //hours setting indicator
   while (! readButton(button_pin) ) {
     hours = getHours( analogRead( analog_input_pin ) );
     if ( prev_time_value != hours ) {
@@ -118,12 +118,11 @@ void setup() {
       slcd.print((long unsigned int)(hours), DEC);
     }
   }
-  slcd.setCursor(0, 0);
-  slcd.print("  "); //clear hours setting indicator
+
   while ( readButton(button_pin) ); //wait for button release
   
-  slcd.setCursor(4, 0);
-  slcd.print("VV"); //minutes setting indicator
+  slcd.setCursor(0, 0);
+  slcd.print("Setting minutes:"); //minutes setting indicator
   prev_time_value = 0;
   while (! readButton(button_pin) ) {
     minutes = getMinutes( analogRead( analog_input_pin ) );
@@ -137,10 +136,9 @@ void setup() {
   }
   while ( readButton(button_pin) ); //wait for button release
   slcd.setCursor(4, 0);
-  slcd.print("  "); //clear minutes setting indicator
   seconds = 0; //reset seconds to 0
   slcd.setCursor(0, 0);
-  slcd.print("Press to start");
+  slcd.print("Press to start. ");
     slcd.setCursor(0, 0);
   while ( ! readButton(button_pin) ); //wait for button press
   //print some stuff on LCD display
