@@ -142,15 +142,16 @@ void setup() {
     slcd.setCursor(0, 0);
     slcd.print("Press to start. ");
     slcd.setCursor(0, 0);
+
     while (!readButton(button_pin));	//wait for button press
-    //print some stuff on LCD display
+
+    //CTC vaweform mode | 1024 prescaler. Start the timer.
+    TCCR1B = (1 << WGM12) | (1 << CS12) | (1 << CS10);
+
+    //print some stuff on LCD display while the timer is already running
     slcd.print("Current time    :");
     slcd.setCursor(0, 1);
     slcd.print("0 h 0 m 0 s");
-
-
-    //CTC vaweform mode | 1024 prescaler
-    TCCR1B = (1 << WGM12) | (1 << CS12) | (1 << CS10);
 }
 
 void loop() {
