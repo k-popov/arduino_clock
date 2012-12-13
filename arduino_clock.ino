@@ -58,22 +58,22 @@ void printTime() {
     //print time only if the corresponding value changed
     if (seconds != prev_seconds) {
 	//if second value changed
-	slcd.setCursor(8, 1);
-	slcd.print("  s");
-	slcd.setCursor(8, 1);
+	slcd.setCursor(6, 1);
+	slcd.print("  ");
+	slcd.setCursor(6, 1);
 	slcd.print((long unsigned int) seconds, DEC);
 	prev_seconds = seconds;
 	if (minutes != prev_minutes) {
 	    //if minutes value changed
-	    slcd.setCursor(4, 1);
-	    slcd.print("  m");
-	    slcd.setCursor(4, 1);
+	    slcd.setCursor(3, 1);
+	    slcd.print("  ");
+	    slcd.setCursor(3, 1);
 	    slcd.print((long unsigned int) minutes, DEC);
 	    prev_minutes = minutes;
 	    if (hours != prev_hours) {
 		//if hours value changed
 		slcd.setCursor(0, 1);
-		slcd.print("  h");
+		slcd.print("  ");
 		slcd.setCursor(0, 1);
 		slcd.print((long unsigned int) hours, DEC);
 		prev_hours = hours;
@@ -82,40 +82,49 @@ void printTime() {
     }
 }
 
-void setTime() {
+void setTime(char* request, byte* hrs_ptr, byte* min_ptr, byte* sec_ptr) {
     byte prev_time_value = 0;
-    slcd.setCursor(0, 0);
-    slcd.print("Setting hours:");	//hours setting indicator
+
+    // print the request message
+    slcd.setCursor(0,0);
+    slcd.print(request);
+
+    //set hours
+    slcd.setCursor(0, 1);
     while (!readButton(button_pin)) {
-	hours = getHours(analogRead(analog_input_pin));
-	if (prev_time_value != hours) {
-	    prev_time_value = hours;
+	*hrs_ptr = getHours(analogRead(analog_input_pin));
+	if (prev_time_value != *hrs_ptr) {
+	    prev_time_value = *hrs_ptr;
 	    slcd.setCursor(0, 1);
 	    slcd.print("  ");
 	    slcd.setCursor(0, 1);
-	    slcd.print((long unsigned int) (hours), DEC);
+	    slcd.print((long unsigned int) (*hrs_ptr), DEC);
 	}
     }
 
+    slcd.setCursor(2, 1);
+    slcd.print(":");
     while (readButton(button_pin));	//wait for button release
 
-    slcd.setCursor(0, 0);
-    slcd.print("Setting minutes:");	//minutes setting indicator
+    //set minutes
+    slcd.setCursor(3, 1);
     prev_time_value = 0;
     while (!readButton(button_pin)) {
-	minutes = getMinutes(analogRead(analog_input_pin));
-	if (minutes != prev_time_value) {
-	    prev_time_value = minutes;
-	    slcd.setCursor(4, 1);
+	*min_ptr = getMinutes(analogRead(analog_input_pin));
+	if (*min_ptr != prev_time_value) {
+	    prev_time_value = *min_ptr;
+	    slcd.setCursor(3, 1);
 	    slcd.print("  ");
-	    slcd.setCursor(4, 1);
+	    slcd.setCursor(3, 1);
 	    slcd.print((long unsigned int) (minutes), DEC);
 	}
     }
+    slcd.setCursor(5, 1);
+    slcd.print(":00");
+
     while (readButton(button_pin));	//wait for button release
-    slcd.setCursor(4, 0);
-    seconds = 0;		//reset seconds to 0
-    slcd.setCursor(0, 0);
+
+    *sec_ptr = 0;		//reset seconds to 0
 }
 
 void setup() {
@@ -144,9 +153,9 @@ void setup() {
     slcd.backlight();
 
     //set hours and minutes, reset seconds to 0 and wait for start
-    setTime();
-    slcd.print("Press to start. ");
+    setTime("Setting time:", &hours, &minutes, &seconds);
     slcd.setCursor(0, 0);
+    slcd.print("Press to start. ");
 
     while (!readButton(button_pin));	//wait for button press
 
@@ -154,9 +163,10 @@ void setup() {
     TCCR1B = (1 << WGM12) | (1 << CS12) | (1 << CS10);
 
     //print some stuff on LCD display while the timer is already running
+    slcd.setCursor(0, 0);
     slcd.print("Current time    :");
-    slcd.setCursor(0, 1);
-    slcd.print("0 h 0 m 0 s");
+//    slcd.setCursor(0, 1);
+//    slcd.print("0 :0 :0 ");
 }
 
 void loop() {
