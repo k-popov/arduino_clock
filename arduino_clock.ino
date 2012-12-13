@@ -2,6 +2,8 @@
 #include <SerialLCD.h>
 #include <SoftwareSerial.h> //this is a must
 
+#define TIMER_SEED 15633
+
 SerialLCD slcd(11,12);//this is a must, assign soft serial pins
 byte seconds = 0;
 byte minutes = 0;
@@ -96,7 +98,7 @@ void setup() {
   //clear timer1 interrupt flags
   TIFR1 = 0x00;
   //counter seed for 1 second triggering
-  OCR1A = 15632;
+  OCR1A = TIMER_SEED;
   //enable output compare interrupt
   TIMSK1 = (1 << OCIE1A);
   sei();
