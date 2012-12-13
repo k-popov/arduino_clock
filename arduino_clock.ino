@@ -82,31 +82,7 @@ void printTime() {
     }
 }
 
-void setup() {
-/*
-* setting up timer1
-*/
-    cli();
-    //CTC vaweform mode | 1024 prescaler
-    //  TCCR1B = (1 << WGM12) | (1 << CS12) | (1 << CS10);
-    //will start the timer on button press
-    TCCR1B = 0x00;		//now the timer is stopped
-    //normal mode, all waveform ganeration bits are 0
-    TCCR1A = 0x00;
-    //reset the timer
-    TCNT1 = 0x0000;
-    //clear timer1 interrupt flags
-    TIFR1 = 0x00;
-    //counter seed for 1 second triggering
-    OCR1A = TIMER_SEED;
-    //enable output compare interrupt
-    TIMSK1 = (1 << OCIE1A);
-    sei();
-
-    //initialize LCD disply
-    slcd.begin();
-    slcd.backlight();
-
+void setTime() {
     byte prev_time_value = 0;
     slcd.setCursor(0, 0);
     slcd.print("Setting hours:");	//hours setting indicator
@@ -140,6 +116,35 @@ void setup() {
     slcd.setCursor(4, 0);
     seconds = 0;		//reset seconds to 0
     slcd.setCursor(0, 0);
+}
+
+void setup() {
+/*
+* setting up timer1
+*/
+    cli();
+    //CTC vaweform mode | 1024 prescaler
+    //  TCCR1B = (1 << WGM12) | (1 << CS12) | (1 << CS10);
+    //will start the timer on button press
+    TCCR1B = 0x00;		//now the timer is stopped
+    //normal mode, all waveform ganeration bits are 0
+    TCCR1A = 0x00;
+    //reset the timer
+    TCNT1 = 0x0000;
+    //clear timer1 interrupt flags
+    TIFR1 = 0x00;
+    //counter seed for 1 second triggering
+    OCR1A = TIMER_SEED;
+    //enable output compare interrupt
+    TIMSK1 = (1 << OCIE1A);
+    sei();
+
+    //initialize LCD disply
+    slcd.begin();
+    slcd.backlight();
+
+    //set hours and minutes, reset seconds to 0 and wait for start
+    setTime();
     slcd.print("Press to start. ");
     slcd.setCursor(0, 0);
 
