@@ -42,7 +42,7 @@ def better_result(cur_skew,
 
 for conter_seed in xrange(1,timer_max_value):
     for p in prescalers:
-        postscaler = freq / p / (conter_seed)
+        postscaler = freq / p / (conter_seed + 1)
         if postscaler > max_postscaler: continue
         skew = postscaler - int(postscaler)
         if better_result(skew,

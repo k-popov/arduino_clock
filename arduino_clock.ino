@@ -2,7 +2,7 @@
 #include <SerialLCD.h>
 #include <SoftwareSerial.h>	//this is a must
 
-#define TIMER_SEED 15633
+#define TIMER_SEED 15632
 
 SerialLCD slcd(11, 12);		//this is a must, assign soft serial pins
 byte seconds = 0;
