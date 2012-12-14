@@ -3,6 +3,7 @@
 #include <SoftwareSerial.h>	//this is a must
 
 #define TIMER_SEED 15632
+#define NULL ((void *)0)
 
 SerialLCD slcd(11, 12);		//this is a must, assign soft serial pins
 byte seconds = 0;
@@ -14,9 +15,23 @@ byte prev_seconds = 0;
 byte prev_minutes = 0;
 byte prev_hours = 0;
 
+//alarm settings. Do not check seconds.
+//alarm_hours. 1 in major bit (128) sets alarm ON (manual switch)
+//Something like    7 | (1 << 7)  may be used to set alarm at 7 AM
+//Default if OFF
+byte alarm_hours = 0;
+//alarm_minutes. 1 in major bit (128) indicates alarm action should be
+//taken. This is required for turning off the light or buzzer during
+//the minute set as alarm minute and then restore ON action
+//after the minutes value changes.
+//Default is "action enabled".
+byte alarm_minutes = 0 | (1 << 7);
+
+
 const int button_pin = 3;
 const int debounce_delay = 30;
 const int analog_input_pin = A0;
+const int relay_pin = 5;
 
 void timer2OverflowHandler() {
     cli();
@@ -124,7 +139,8 @@ void setTime(char* request, byte* hrs_ptr, byte* min_ptr, byte* sec_ptr) {
 
     while (readButton(button_pin));	//wait for button release
 
-    *sec_ptr = 0;		//reset seconds to 0
+           if (sec_ptr)			//if seconds pointer is not null
+        *sec_ptr = 0;			//reset seconds to 0
 }
 
 void setup() {
@@ -147,6 +163,10 @@ void setup() {
     //enable output compare interrupt
     TIMSK1 = (1 << OCIE1A);
     sei();
+
+    // initialize the relay (light switch)
+    pinMode(relay_pin, OUTPUT);
+    digitalWrite(relay_pin, LOW);
 
     //initialize LCD disply
     slcd.begin();
@@ -171,4 +191,20 @@ void setup() {
 
 void loop() {
     printTime();
+    if (alarm_hours & 0b10000000)
+        //if alarm is on (check major bit)
+        if ( (alarm_hours & 0b01111111 == hours) && 
+             (alarm_minutes & 0b01111111 == minutes) )
+            //time to weke'em up!
+            if (alarm_minutes & 0b10000000) {
+                //user didn't press button to snooze the alarm
+                digitalWrite(relay_pin, HIGH);
+                if ( readButton(button_pin) )
+                    //turn the light off now (snooze)
+                    alarm_minutes &= 0b01111111;
+                    digitalWrite(relay_pin, LOW);
+                }
+        else
+            //the tima has changed. Re-enable the snoozed alarm
+            alarm_minutes |= (1 << 7);
 }
