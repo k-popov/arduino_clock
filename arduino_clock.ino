@@ -25,7 +25,7 @@ byte alarm_hours = 0;
 //the minute set as alarm minute and then restore ON action
 //after the minutes value changes.
 //Default is "action enabled".
-byte alarm_minutes = 0 | (1 << 7);
+byte alarm_minutes = ( 0 | (1 << 7) );
 
 
 const int button_pin = 3;
@@ -185,26 +185,27 @@ void setup() {
     //print some stuff on LCD display while the timer is already running
     slcd.setCursor(0, 0);
     slcd.print("Current time    :");
-//    slcd.setCursor(0, 1);
-//    slcd.print("0 :0 :0 ");
 }
 
 void loop() {
     printTime();
-    if (alarm_hours & 0b10000000)
+    if (alarm_hours & 0b10000000) {
         //if alarm is on (check major bit)
-        if ( (alarm_hours & 0b01111111 == hours) && 
-             (alarm_minutes & 0b01111111 == minutes) )
+        if ( ( (alarm_hours & 0b01111111) == hours) && 
+             ( (alarm_minutes & 0b01111111) == minutes) ) {
             //time to weke'em up!
             if (alarm_minutes & 0b10000000) {
                 //user didn't press button to snooze the alarm
                 digitalWrite(relay_pin, HIGH);
-                if ( readButton(button_pin) )
+                if ( readButton(button_pin) ) {
                     //turn the light off now (snooze)
                     alarm_minutes &= 0b01111111;
                     digitalWrite(relay_pin, LOW);
                 }
+            }
+        }
         else
             //the tima has changed. Re-enable the snoozed alarm
             alarm_minutes |= (1 << 7);
+    }
 }
