@@ -5,6 +5,13 @@
 #define TIMER_SEED 15632
 #define NULL ((void *)0)
 
+//free alarm setting variable from flags. Return time only
+//see "alarm_hours" and "alarm_minutes" below
+#define getAlarmTime(X) X & 0b01111111
+//free alarm setting from time. Return flag value only
+//see "alarm_hours" and "alarm_minutes" below
+#define getAlarmFlag(X) X & 0b10000000
+
 SerialLCD slcd(11, 12);		//this is a must, assign soft serial pins
 byte seconds = 0;
 byte minutes = 0;
@@ -189,12 +196,12 @@ void setup() {
 
 void loop() {
     printTime();
-    if (alarm_hours & 0b10000000) {
+    if ( getAlarmFlag(alarm_hours) ) {
         //if alarm is on (check major bit)
-        if ( ( (alarm_hours & 0b01111111) == hours) && 
-             ( (alarm_minutes & 0b01111111) == minutes) ) {
+        if ( ( getAlarmTime(alarm_hours) == hours) && 
+             ( getAlarmTime(alarm_minutes) == minutes) ) {
             //time to weke'em up!
-            if (alarm_minutes & 0b10000000) {
+            if (getAlarmFlag(alarm_minutes)) {
                 //user didn't press button to snooze the alarm
                 digitalWrite(relay_pin, HIGH);
                 if ( readButton(button_pin) ) {
