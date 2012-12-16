@@ -36,7 +36,7 @@ byte alarm_minutes = ( 0 | (1 << 7) );
 
 
 const int button_pin = 3;
-const int debounce_delay = 30;
+const int debounce_delay = 50;
 const int analog_input_pin = A0;
 const int relay_pin = 5;
 
@@ -107,11 +107,17 @@ void printTime() {
 void setTime(char* request, byte* hrs_ptr, byte* min_ptr, byte* sec_ptr) {
     byte prev_time_value = 0;
 
+    while ( readButton(button_pin) ); //wait till button is released
+
     // print the request message
+    slcd.setCursor(0,0);
+    slcd.print("                "); //clear line
     slcd.setCursor(0,0);
     slcd.print(request);
 
     //set hours
+    slcd.setCursor(0, 1);
+    slcd.print("                "); //clear line
     slcd.setCursor(0, 1);
     while (!readButton(button_pin)) {
 	*hrs_ptr = getHours(analogRead(analog_input_pin));
@@ -124,9 +130,10 @@ void setTime(char* request, byte* hrs_ptr, byte* min_ptr, byte* sec_ptr) {
 	}
     }
 
+    while ( readButton(button_pin) ); //wait till button is released
+
     slcd.setCursor(2, 1);
     slcd.print(":");
-    while (readButton(button_pin));	//wait for button release
 
     //set minutes
     slcd.setCursor(3, 1);
@@ -138,7 +145,7 @@ void setTime(char* request, byte* hrs_ptr, byte* min_ptr, byte* sec_ptr) {
 	    slcd.setCursor(3, 1);
 	    slcd.print("  ");
 	    slcd.setCursor(3, 1);
-	    slcd.print((long unsigned int) (minutes), DEC);
+	    slcd.print((long unsigned int) (*min_ptr), DEC);
 	}
     }
     slcd.setCursor(5, 1);
@@ -225,6 +232,7 @@ void setup() {
     //print some stuff on LCD display while the timer is already running
     slcd.setCursor(0, 0);
     slcd.print("Current time    :");
+    while ( readButton(button_pin) ); //wait till button is released
 }
 
 void loop() {
@@ -233,4 +241,13 @@ void loop() {
         alarmOn();
     else
         alarmOff();
+    if ( readButton(button_pin) ) {
+        //alarm setting requested
+        //set actual alarm time values
+        setTime("Setting alarm:", &alarm_hours, &alarm_minutes, (byte*)NULL);
+        //set "alarm enabled" flag
+        alarm_hours |= (1 << 7);
+        //set "alarm not snoozed" flag
+        alarm_minutes |= (1 << 7);
+    }
 }
