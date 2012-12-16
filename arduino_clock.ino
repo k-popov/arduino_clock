@@ -17,10 +17,8 @@ byte seconds = 0;
 byte minutes = 0;
 byte hours = 0;
 
-//record the previous time values to eliminate duplicate output
+//record the previous time values to minimize duplicate output
 byte prev_seconds = 0;
-byte prev_minutes = 0;
-byte prev_hours = 0;
 
 //alarm settings. Not checking seconds
 byte alarm_hours = 0;
@@ -80,30 +78,18 @@ byte getMinutes(int analog_value) {
 }
 
 void printTime() {
-    //print time only if the corresponding value changed
+    //print time only if seconds value changed
     if (seconds != prev_seconds) {
 	//if second value changed
-	slcd.setCursor(6, 1);
-	slcd.print("  ");
-	slcd.setCursor(6, 1);
-	slcd.print((long unsigned int) seconds, DEC);
+        slcd.setCursor(0, 1);
+        slcd.print("  :  :          ");
+        slcd.setCursor(0, 1);
+        slcd.print((long unsigned int) hours, DEC);
+        slcd.setCursor(3, 1);
+        slcd.print((long unsigned int) minutes, DEC);
+        slcd.setCursor(6, 1);
+        slcd.print((long unsigned int) seconds, DEC);
 	prev_seconds = seconds;
-	if (minutes != prev_minutes) {
-	    //if minutes value changed
-	    slcd.setCursor(3, 1);
-	    slcd.print("  ");
-	    slcd.setCursor(3, 1);
-	    slcd.print((long unsigned int) minutes, DEC);
-	    prev_minutes = minutes;
-	    if (hours != prev_hours) {
-		//if hours value changed
-		slcd.setCursor(0, 1);
-		slcd.print("  ");
-		slcd.setCursor(0, 1);
-		slcd.print((long unsigned int) hours, DEC);
-		prev_hours = hours;
-	    }
-	}
     }
 }
 
