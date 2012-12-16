@@ -150,6 +150,39 @@ void setTime(char* request, byte* hrs_ptr, byte* min_ptr, byte* sec_ptr) {
         *sec_ptr = 0;			//reset seconds to 0
 }
 
+void alarmOn() {
+    digitalWrite(relay_pin, HIGH);
+}
+
+void alarmOff() {
+    digitalWrite(relay_pin, LOW);
+}
+
+int checkAlarm() {
+    if ( getAlarmFlag(alarm_hours) ) {
+        Serial.write("A");
+        //if alarm is on (check major bit)
+        if ( ( ( getAlarmTime(alarm_hours) ) == hours) && 
+             ( ( getAlarmTime(alarm_minutes) ) == minutes) ) {
+            //time to weke'em up!
+            if (getAlarmFlag(alarm_minutes)) {
+                //user didn't press button to snooze the alarm
+                //here we already may turn alarm signal on but we will return later
+                if ( readButton(button_pin) ) {
+                    //turn the light off now (snooze)
+                    alarm_minutes &= 0b01111111;
+                    return 0; //say it's time to turn alarm off
+                }
+                return 1; //Yes, turn alarm signal on!
+            }
+        }
+        else
+            //the time has changed. Re-enable the snoozed alarm
+            alarm_minutes |= (1 << 7);
+    }
+    return 0; //no alarm enabled
+}
+
 void setup() {
 /*
 * setting up timer1
@@ -196,23 +229,8 @@ void setup() {
 
 void loop() {
     printTime();
-    if ( getAlarmFlag(alarm_hours) ) {
-        //if alarm is on (check major bit)
-        if ( ( getAlarmTime(alarm_hours) == hours) && 
-             ( getAlarmTime(alarm_minutes) == minutes) ) {
-            //time to weke'em up!
-            if (getAlarmFlag(alarm_minutes)) {
-                //user didn't press button to snooze the alarm
-                digitalWrite(relay_pin, HIGH);
-                if ( readButton(button_pin) ) {
-                    //turn the light off now (snooze)
-                    alarm_minutes &= 0b01111111;
-                    digitalWrite(relay_pin, LOW);
-                }
-            }
-        }
-        else
-            //the tima has changed. Re-enable the snoozed alarm
-            alarm_minutes |= (1 << 7);
-    }
+    if ( checkAlarm() )
+        alarmOn();
+    else
+        alarmOff();
 }
