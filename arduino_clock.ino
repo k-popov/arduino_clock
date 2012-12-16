@@ -22,18 +22,21 @@ byte prev_seconds = 0;
 byte prev_minutes = 0;
 byte prev_hours = 0;
 
-//alarm settings. Do not check seconds.
-//alarm_hours. 1 in major bit (128) sets alarm ON (manual switch)
-//Something like    7 | (1 << 7)  may be used to set alarm at 7 AM
-//Default if OFF
+//alarm settings. Not checking seconds
 byte alarm_hours = 0;
-//alarm_minutes. 1 in major bit (128) indicates alarm action should be
-//taken. This is required for turning off the light or buzzer during
-//the minute set as alarm minute and then restore ON action
-//after the minutes value changes.
-//Default is "action enabled".
-byte alarm_minutes = ( 0 | (1 << 7) );
+byte alarm_minutes = 0;
+byte alarm_flags = 0; //store all the alarm falgs
 
+//alarm is globally enabled (bit 0)
+#define ALARM_ENABLED 0
+//alarm is currently enabled, not turned off by "snooze" (bit 1)
+#define ALARM_UNSNOOZED 1
+//alarm is currently active (ringing, light is on, etc...) (bit 2)
+#define ALARM_ACTIVE 2
+
+#define getAlarmFlag(flag_variable, requested_parameter) (flag_variable & (1 << requested_parameter) )
+#define setAlarmFlag(flag_variable, requested_parameter) (flag_variable |= (1 << requested_parameter) )
+#define unsetAlarmFlag(flag_variable, requested_parameter) (flag_variable &= (255 ^ (1 << requested_parameter) ) )
 
 const int button_pin = 3;
 const int debounce_delay = 50;
@@ -159,25 +162,26 @@ void setTime(char* request, byte* hrs_ptr, byte* min_ptr, byte* sec_ptr) {
 
 void alarmOn() {
     digitalWrite(relay_pin, HIGH);
+    setAlarmFlag(alarm_flags, ALARM_ACTIVE);
 }
 
 void alarmOff() {
     digitalWrite(relay_pin, LOW);
+    unsetAlarmFlag(alarm_flags, ALARM_ACTIVE);
 }
 
 int checkAlarm() {
-    if ( getAlarmFlag(alarm_hours) ) {
-        Serial.write("A");
-        //if alarm is on (check major bit)
-        if ( ( ( getAlarmTime(alarm_hours) ) == hours) && 
-             ( ( getAlarmTime(alarm_minutes) ) == minutes) ) {
+    if ( getAlarmFlag(alarm_flags, ALARM_ENABLED) ) {
+        //if alarm is globally enabled
+        if ( (alarm_hours == hours) && 
+             (alarm_minutes == minutes) ) {
             //time to weke'em up!
-            if (getAlarmFlag(alarm_minutes)) {
+            if (getAlarmFlag(alarm_flags, ALARM_UNSNOOZED)) {
                 //user didn't press button to snooze the alarm
-                //here we already may turn alarm signal on but we will return later
+                //here we already may turn alarm signal on but we will return 1 later
                 if ( readButton(button_pin) ) {
                     //turn the light off now (snooze)
-                    alarm_minutes &= 0b01111111;
+                    unsetAlarmFlag(alarm_flags, ALARM_UNSNOOZED);
                     return 0; //say it's time to turn alarm off
                 }
                 return 1; //Yes, turn alarm signal on!
@@ -185,7 +189,7 @@ int checkAlarm() {
         }
         else
             //the time has changed. Re-enable the snoozed alarm
-            alarm_minutes |= (1 << 7);
+            setAlarmFlag(alarm_flags, ALARM_UNSNOOZED);;
     }
     return 0; //no alarm enabled
 }
@@ -246,8 +250,8 @@ void loop() {
         //set actual alarm time values
         setTime("Setting alarm:", &alarm_hours, &alarm_minutes, (byte*)NULL);
         //set "alarm enabled" flag
-        alarm_hours |= (1 << 7);
+        setAlarmFlag(alarm_flags, ALARM_ENABLED);
         //set "alarm not snoozed" flag
-        alarm_minutes |= (1 << 7);
+        setAlarmFlag(alarm_flags, ALARM_UNSNOOZED);
     }
 }
