@@ -226,6 +226,16 @@ void setup() {
 }
 
 void loop() {
+
+/* TODO
+Alarm subsystem features:
+1. Setup/enable alarm
+2. Snooze alarm
+3. Start alarm action only once
+4. Stop alarm action only once
+5? Disable alarm
+*/
+
     printTime();
     if ( checkAlarm() )
         alarmOn();
