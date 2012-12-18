@@ -20,6 +20,9 @@ byte hours = 0;
 //record the previous time values to minimize duplicate output
 byte prev_seconds = 0;
 
+//button state for flip-flop-like state reading. See readButtonOnce();
+byte global_button_state = 0;
+
 //alarm settings. Not checking seconds
 byte alarm_hours = 0;
 byte alarm_minutes = 0;
@@ -58,11 +61,29 @@ ISR(TIMER1_COMPA_vect) {
     timer2OverflowHandler();
 }
 
-int readButton(const int btn_pin) {
+byte readButton(const int btn_pin) {
     byte button_state = digitalRead(btn_pin);
     delay(debounce_delay);
     if (digitalRead(btn_pin) == button_state)
 	return button_state;
+}
+
+byte readButtonOnce(const int button_pin) {
+    if ( readButton(button_pin) ) {
+        //if button is currently read as pressed
+        if (global_button_state)
+            //already registered as pressed
+            return 0;
+        else {
+            //wasn't pressed previously but now reads aspressed
+            global_button_state = 1;
+            return 1;
+        }
+    else
+        if (global_button_state)
+            //button is now not pressed but it was
+            global_button_state = 0;
+    return 0;
 }
 
 byte getHours(int analog_value) {
