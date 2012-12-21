@@ -1,2 +1,5 @@
 applet
 Makefile
+.anjuta
+arduino_clock.anjuta
+.tm_project2.cache
