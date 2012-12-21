@@ -1,6 +1,6 @@
 // include the library code:
 #include <SerialLCD.h>
-#include <SoftwareSerial.h>	//this is a must
+#include <SoftwareSerial.h>    //this is a must
 
 #define TIMER_SEED 15632
 #define NULL ((void *)0)
@@ -12,7 +12,7 @@
 //see "alarm_hours" and "alarm_minutes" below
 #define getAlarmFlag(X) X & 0b10000000
 
-SerialLCD slcd(11, 12);		//this is a must, assign soft serial pins
+SerialLCD slcd(11, 12);        //this is a must, assign soft serial pins
 byte seconds = 0;
 byte minutes = 0;
 byte hours = 0;
@@ -31,7 +31,7 @@ byte alarm_flags = 0; //store all the alarm falgs
 //alarm is globally enabled (bit 0)
 #define ALARM_ENABLED 0
 //alarm is currently enabled, not turned off by "snooze" (bit 1)
-#define ALARM_UNSNOOZED 1
+#define ALARM_SNOOZED 1
 //alarm is currently active (ringing, light is on, etc...) (bit 2)
 #define ALARM_ACTIVE 2
 
@@ -46,13 +46,13 @@ const int relay_pin = 5;
 
 void timer2OverflowHandler() {
     cli();
-    if ((++seconds) == 60) {
-	seconds = 0;
-	if ((++minutes) == 60) {
-	    minutes = 0;
-	    if ((++hours) == 24)
-		hours = 0;
-	}
+    if ((++seconds) == 30) {
+        seconds = 0;
+        if ((++minutes) == 60) {
+            minutes = 0;
+            if ((++hours) == 24)
+                hours = 0;
+        }
     }
     sei();
 }
@@ -62,10 +62,12 @@ ISR(TIMER1_COMPA_vect) {
 }
 
 byte readButton(const int btn_pin) {
-    byte button_state = digitalRead(btn_pin);
-    delay(debounce_delay);
-    if (digitalRead(btn_pin) == button_state)
-	return button_state;
+    byte button_state = 0;
+    do {
+        button_state = digitalRead(btn_pin);
+        delay(debounce_delay);
+    } while (digitalRead(btn_pin) != button_state);
+    return button_state;
 }
 
 byte readButtonOnce(const int button_pin) {
@@ -79,92 +81,109 @@ byte readButtonOnce(const int button_pin) {
             global_button_state = 1;
             return 1;
         }
+    }
     else
         if (global_button_state)
-            //button is now not pressed but it was
-            global_button_state = 0;
+        //button is now not pressed but it was
+        global_button_state = 0;
     return 0;
 }
 
+
 byte getHours(int analog_value) {
     if (analog_value >= 230)
-	return 23;		//can't set more than 23 hours
-    return byte(analog_value / 10);	//very time-consuming but size-effective
+        return 23;        //can't set more than 23 hours
+    return byte(analog_value / 10);    //very time-consuming but size-effective
 }
 
 byte getMinutes(int analog_value) {
     if (analog_value >= 226)
-	return 59;		//can't set more than 59 minutes
-    return byte(analog_value >> 2);	//fast division
+        return 59;        //can't set more than 59 minutes
+    return byte(analog_value >> 2);    //fast division
 }
 
 void printTime() {
     //print time only if seconds value changed
     if (seconds != prev_seconds) {
-	//if second value changed
+        //if second value changed
         slcd.setCursor(0, 1);
-        slcd.print("  :  :          ");
+//        slcd.print("  :  :          ");
+        slcd.print("  :  :   ");
         slcd.setCursor(0, 1);
         slcd.print((long unsigned int) hours, DEC);
         slcd.setCursor(3, 1);
         slcd.print((long unsigned int) minutes, DEC);
         slcd.setCursor(6, 1);
         slcd.print((long unsigned int) seconds, DEC);
-	prev_seconds = seconds;
+        prev_seconds = seconds;
+//the rest is debugging status outputs
+        slcd.setCursor(11, 1);
+        if ( getAlarmFlag(alarm_flags, ALARM_ENABLED) )
+            slcd.print("E");
+        else
+            slcd.print("e");
+        if ( getAlarmFlag(alarm_flags, ALARM_SNOOZED) )
+            slcd.print("S");
+        else
+            slcd.print("s");
+        if ( getAlarmFlag(alarm_flags, ALARM_ACTIVE) )
+            slcd.print("A");
+        else
+            slcd.print("a");
     }
 }
 
 void setTime(char* request, byte* hrs_ptr, byte* min_ptr, byte* sec_ptr) {
     byte prev_time_value = 0;
-
+    
     while ( readButton(button_pin) ); //wait till button is released
-
+    
     // print the request message
     slcd.setCursor(0,0);
     slcd.print("                "); //clear line
     slcd.setCursor(0,0);
     slcd.print(request);
-
+    
     //set hours
     slcd.setCursor(0, 1);
     slcd.print("                "); //clear line
     slcd.setCursor(0, 1);
     while (!readButton(button_pin)) {
-	*hrs_ptr = getHours(analogRead(analog_input_pin));
-	if (prev_time_value != *hrs_ptr) {
-	    prev_time_value = *hrs_ptr;
-	    slcd.setCursor(0, 1);
-	    slcd.print("  ");
-	    slcd.setCursor(0, 1);
-	    slcd.print((long unsigned int) (*hrs_ptr), DEC);
-	}
+        *hrs_ptr = getHours(analogRead(analog_input_pin));
+        if (prev_time_value != *hrs_ptr) {
+            prev_time_value = *hrs_ptr;
+            slcd.setCursor(0, 1);
+            slcd.print("  ");
+            slcd.setCursor(0, 1);
+            slcd.print((long unsigned int) (*hrs_ptr), DEC);
+        }
     }
-
+    
     while ( readButton(button_pin) ); //wait till button is released
-
+    
     slcd.setCursor(2, 1);
     slcd.print(":");
-
+    
     //set minutes
     slcd.setCursor(3, 1);
     prev_time_value = 0;
     while (!readButton(button_pin)) {
-	*min_ptr = getMinutes(analogRead(analog_input_pin));
-	if (*min_ptr != prev_time_value) {
-	    prev_time_value = *min_ptr;
-	    slcd.setCursor(3, 1);
-	    slcd.print("  ");
-	    slcd.setCursor(3, 1);
-	    slcd.print((long unsigned int) (*min_ptr), DEC);
-	}
+        *min_ptr = getMinutes(analogRead(analog_input_pin));
+        if (*min_ptr != prev_time_value) {
+            prev_time_value = *min_ptr;
+            slcd.setCursor(3, 1);
+            slcd.print("  ");
+            slcd.setCursor(3, 1);
+            slcd.print((long unsigned int) (*min_ptr), DEC);
+        }
     }
     slcd.setCursor(5, 1);
     slcd.print(":00");
-
-    while (readButton(button_pin));	//wait for button release
-
-           if (sec_ptr)			//if seconds pointer is not null
-        *sec_ptr = 0;			//reset seconds to 0
+    
+    while (readButton(button_pin));    //wait for button release
+    
+    if (sec_ptr)            //if seconds pointer is not null
+        *sec_ptr = 0;            //reset seconds to 0
 }
 
 void alarmOn() {
@@ -177,39 +196,21 @@ void alarmOff() {
     unsetAlarmFlag(alarm_flags, ALARM_ACTIVE);
 }
 
-int checkAlarm() {
-    if ( getAlarmFlag(alarm_flags, ALARM_ENABLED) ) {
-        //if alarm is globally enabled
-        if ( (alarm_hours == hours) && 
-             (alarm_minutes == minutes) ) {
-            //time to weke'em up!
-            if (getAlarmFlag(alarm_flags, ALARM_UNSNOOZED)) {
-                //user didn't press button to snooze the alarm
-                //here we already may turn alarm signal on but we will return 1 later
-                if ( readButton(button_pin) ) {
-                    //turn the light off now (snooze)
-                    unsetAlarmFlag(alarm_flags, ALARM_UNSNOOZED);
-                    return 0; //say it's time to turn alarm off
-                }
-                return 1; //Yes, turn alarm signal on!
-            }
-        }
-        else
-            //the time has changed. Re-enable the snoozed alarm
-            setAlarmFlag(alarm_flags, ALARM_UNSNOOZED);;
-    }
+int checkAlarmTime() {
+    if ( (alarm_hours == hours) && (alarm_minutes == minutes) )
+        return 1; //Yes, turn alarm signal on!
     return 0; //no alarm enabled
 }
 
 void setup() {
-/*
-* setting up timer1
-*/
+    /*
+     * setting up timer1
+     */
     cli();
     //CTC vaweform mode | 1024 prescaler
     //  TCCR1B = (1 << WGM12) | (1 << CS12) | (1 << CS10);
     //will start the timer on button press
-    TCCR1B = 0x00;		//now the timer is stopped
+    TCCR1B = 0x00;        //now the timer is stopped
     //normal mode, all waveform ganeration bits are 0
     TCCR1A = 0x00;
     //reset the timer
@@ -221,25 +222,25 @@ void setup() {
     //enable output compare interrupt
     TIMSK1 = (1 << OCIE1A);
     sei();
-
+    
     // initialize the relay (light switch)
     pinMode(relay_pin, OUTPUT);
     digitalWrite(relay_pin, LOW);
-
+    
     //initialize LCD disply
     slcd.begin();
     slcd.backlight();
-
+    
     //set hours and minutes, reset seconds to 0 and wait for start
     setTime("Setting time:", &hours, &minutes, &seconds);
     slcd.setCursor(0, 0);
     slcd.print("Press to start. ");
-
-    while (!readButton(button_pin));	//wait for button press
-
+    
+    while (!readButton(button_pin));    //wait for button press
+    
     //CTC vaweform mode | 1024 prescaler. Start the timer.
     TCCR1B = (1 << WGM12) | (1 << CS12) | (1 << CS10);
-
+    
     //print some stuff on LCD display while the timer is already running
     slcd.setCursor(0, 0);
     slcd.print("Current time    :");
@@ -247,28 +248,46 @@ void setup() {
 }
 
 void loop() {
-
-/* TODO
-Alarm subsystem features:
-1. Setup/enable alarm
-2. Snooze alarm
-3. Start alarm action only once
-4. Stop alarm action only once
-5? Disable alarm
-*/
-
     printTime();
-    if ( checkAlarm() )
-        alarmOn();
+    if ( readButtonOnce(button_pin) )
+        //detected that the button is pressed
+        if ( getAlarmFlag(alarm_flags, ALARM_ACTIVE) ) {
+            //if alarm is currently active (ringing, light is on, etc...)
+            setAlarmFlag(alarm_flags, ALARM_SNOOZED); //go 2 snooze mode
+            alarmOff();
+        }
+        else
+            //alarm is currently inactive (not ringing, light is off, etc...)
+            if ( getAlarmFlag(alarm_flags, ALARM_ENABLED) )
+                //alarm time is set and alarm is enabled
+                unsetAlarmFlag(alarm_flags, ALARM_ENABLED); //disable alarm
+            else {
+                //alarm is currently not enabled
+                setTime("Alarm time:", &alarm_hours, &alarm_minutes, (byte*)NULL);//set alarm time
+                setAlarmFlag(alarm_flags, ALARM_ENABLED); //enable alarm
+            }
     else
-        alarmOff();
-    if ( readButton(button_pin) ) {
-        //alarm setting requested
-        //set actual alarm time values
-        setTime("Setting alarm:", &alarm_hours, &alarm_minutes, (byte*)NULL);
-        //set "alarm enabled" flag
-        setAlarmFlag(alarm_flags, ALARM_ENABLED);
-        //set "alarm not snoozed" flag
-        setAlarmFlag(alarm_flags, ALARM_UNSNOOZED);
-    }
+        //detected that the button is not pressed
+        if ( getAlarmFlag(alarm_flags, ALARM_ACTIVE) ) {
+            //if alarm is currently active (ringing, light is on, etc...)
+            /* TODO auto-snooze check code is here*/
+        }
+        else
+            //alarm is currently inactive (not ringing, light is off, etc...)
+            if ( getAlarmFlag(alarm_flags, ALARM_ENABLED) )
+                //alarm time is set and alarm is enabled
+                if ( checkAlarmTime() )
+                    //it's time for the alarm!
+                    if ( ! getAlarmFlag(alarm_flags, ALARM_SNOOZED) ) {
+                        //if alarm is not currently snoozed
+                        alarmOn(); // start waking up action
+                        /*TODO Record time of alarm started OR use alarm_time OR count cycle runs*/
+                    }
+                else
+                    //it's not yet time for alarm or it's already passed
+                    unsetAlarmFlag(alarm_flags, ALARM_SNOOZED); //un-snooze alarm when already not alarm_time
+            else {
+                //alarm is currently not enabled
+                //nothing here, just start new reading
+            }
 }
