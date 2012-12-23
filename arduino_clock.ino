@@ -46,7 +46,7 @@ const int relay_pin = 5;
 
 void timer2OverflowHandler() {
     cli();
-    if ((++seconds) == 30) {
+    if ((++seconds) == 60) {
         seconds = 0;
         if ((++minutes) == 60) {
             minutes = 0;
@@ -130,6 +130,10 @@ void printTime() {
             slcd.print("A");
         else
             slcd.print("a");
+        if ( global_button_state )
+            slcd.print("B");
+        else
+            slcd.print("b");
     }
 }
 
