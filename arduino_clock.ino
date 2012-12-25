@@ -116,6 +116,7 @@ void printTime() {
         slcd.setCursor(6, 1);
         slcd.print((long unsigned int) seconds, DEC);
         prev_seconds = seconds;
+    }
 //the rest is debugging status outputs
         slcd.setCursor(11, 1);
         if ( getAlarmFlag(alarm_flags, ALARM_ENABLED) )
@@ -134,7 +135,6 @@ void printTime() {
             slcd.print("B");
         else
             slcd.print("b");
-    }
 }
 
 void setTime(char* request, byte* hrs_ptr, byte* min_ptr, byte* sec_ptr) {
@@ -280,13 +280,14 @@ void loop() {
             //alarm is currently inactive (not ringing, light is off, etc...)
             if ( getAlarmFlag(alarm_flags, ALARM_ENABLED) )
                 //alarm time is set and alarm is enabled
-                if ( checkAlarmTime() )
+                if ( checkAlarmTime() ) {
                     //it's time for the alarm!
-                    if ( ! getAlarmFlag(alarm_flags, ALARM_SNOOZED) ) {
+                    if ( (! getAlarmFlag(alarm_flags, ALARM_SNOOZED)) ) {
                         //if alarm is not currently snoozed
                         alarmOn(); // start waking up action
                         /*TODO Record time of alarm started OR use alarm_time OR count cycle runs*/
                     }
+                }
                 else
                     //it's not yet time for alarm or it's already passed
                     unsetAlarmFlag(alarm_flags, ALARM_SNOOZED); //un-snooze alarm when already not alarm_time
