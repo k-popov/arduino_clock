@@ -4,6 +4,7 @@
 
 #define TIMER_SEED 15632
 #define NULL ((void *)0)
+#define AUTOSNOOZE_TIMEOUT 3 //wait for minutes untill autosnooze enabled
 
 //free alarm setting variable from flags. Return time only
 //see "alarm_hours" and "alarm_minutes" below
@@ -19,6 +20,9 @@ byte hours = 0;
 
 //record the previous time values to minimize duplicate output
 byte prev_seconds = 0;
+
+//record time when alarm was turned ON
+byte alarm_on_minutes = 0;
 
 //button state for flip-flop-like state reading. See readButtonOnce();
 byte global_button_state = 0;
@@ -269,12 +273,20 @@ void loop() {
                 //alarm is currently not enabled
                 setTime("Alarm time:", &alarm_hours, &alarm_minutes, (byte*)NULL);//set alarm time
                 setAlarmFlag(alarm_flags, ALARM_ENABLED); //enable alarm
+                // print the "current time" label after alarm setting label
+                slcd.setCursor(0, 0);
+                slcd.print("Current time    :");
             }
     else
         //detected that the button is not pressed
         if ( getAlarmFlag(alarm_flags, ALARM_ACTIVE) ) {
             //if alarm is currently active (ringing, light is on, etc...)
+            if ( (minutes - alarm_on_minutes >= AUTOSNOOZE_TIMEOUT ) ||
+                (alarm_on_minutes - minutes >= (60-AUTOSNOOZE_TIMEOUT)) ) {
+                setAlarmFlag(alarm_flags, ALARM_SNOOZED); //go 2 snooze mode
+                alarmOff();
             /* TODO auto-snooze check code is here*/
+            }
         }
         else
             //alarm is currently inactive (not ringing, light is off, etc...)
@@ -285,7 +297,8 @@ void loop() {
                     if ( (! getAlarmFlag(alarm_flags, ALARM_SNOOZED)) ) {
                         //if alarm is not currently snoozed
                         alarmOn(); // start waking up action
-                        /*TODO Record time of alarm started OR use alarm_time OR count cycle runs*/
+                        //Record time of alarm started OR use alarm_time OR count cycle runs
+                        alarm_on_minutes = minutes;
                     }
                 }
                 else
